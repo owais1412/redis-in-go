@@ -21,15 +21,16 @@ func main() {
 	defer conn.Close()
 
 	for {
-		resp := resp.NewResp(conn)
-		value, err := resp.Read()
+		r := resp.NewResp(conn)
+		value, err := r.Read()
 		if err != nil {
 			slog.Error("Error while reading: ", err)
 			return
 		}
 		slog.Info("Value: ", value)
 
-		conn.Write([]byte("+OK\r\n"))
+		writer := resp.NewWriter(conn)
+		writer.Write(resp.Value{Typ: "string", Str: "OK!"})
 	}
 
 }
