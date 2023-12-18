@@ -3,6 +3,8 @@ package main
 import (
 	"log/slog"
 	"net"
+	"os"
+	"redis/internal/aof"
 	"redis/internal/resp"
 	"strings"
 )
@@ -13,6 +15,31 @@ func main() {
 		slog.Error("Error while listening to tcp :6379: ", err)
 		panic(err)
 	}
+
+	aofFile, exists := os.LookupEnv("REDIS_DB_PATH")
+	if !exists {
+		aofFile = "redis_db.aof"
+	}
+
+	aof, err := aof.NewAof(aofFile)
+	if err != nil {
+		slog.Error("Error while creating append only file: ", err)
+		panic(err)
+	}
+	defer aof.Close()
+
+	aof.Read(func(value resp.Value) {
+		command := strings.ToUpper(value.Array[0].Bulk)
+		args := value.Array[1:]
+
+		handler, ok := resp.Handlers[command]
+		if !ok {
+			slog.Error("Invalid command: " + command)
+			return
+		}
+
+		handler(args)
+	})
 
 	conn, err := l.Accept()
 	if err != nil {
@@ -41,6 +68,11 @@ func main() {
 
 		command := strings.ToUpper(value.Array[0].Bulk)
 		args := value.Array[1:]
+
+		// persit to the disk
+		if command == "SET" || command == "HSET" {
+			aof.Write(value)
+		}
 
 		writer := resp.NewWriter(conn)
 
