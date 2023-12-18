@@ -1,10 +1,9 @@
 package main
 
 import (
-	"io"
 	"log/slog"
 	"net"
-	"os"
+	"redis/internal/resp"
 )
 
 func main() {
@@ -22,18 +21,14 @@ func main() {
 	defer conn.Close()
 
 	for {
-		buf := make([]byte, 1024)
-
-		_, err = conn.Read(buf)
+		resp := resp.NewResp(conn)
+		value, err := resp.Read()
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
-
 			slog.Error("Error while reading: ", err)
-			os.Exit(1)
 			return
 		}
+		slog.Info("Value: ", value)
+
 		conn.Write([]byte("+OK\r\n"))
 	}
 
