@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net"
 	"redis/internal/resp"
+	"strings"
 )
 
 func main() {
@@ -27,10 +28,30 @@ func main() {
 			slog.Error("Error while reading: ", err)
 			return
 		}
-		slog.Info("Value: ", value)
+
+		if value.Typ != "array" {
+			slog.Error("Invalid request, expected array")
+			continue
+		}
+
+		if len(value.Array) == 0 {
+			slog.Error("Invalid request, expected array length > 0")
+			continue
+		}
+
+		command := strings.ToUpper(value.Array[0].Bulk)
+		args := value.Array[1:]
 
 		writer := resp.NewWriter(conn)
-		writer.Write(resp.Value{Typ: "string", Str: "OK!"})
-	}
 
+		handler, ok := resp.Handlers[command]
+		if !ok {
+			slog.Error("Invalid command: " + command)
+			writer.Write(resp.Value{Typ: "string", Str: ""})
+			continue
+		}
+
+		res := handler(args)
+		writer.Write(res)
+	}
 }
