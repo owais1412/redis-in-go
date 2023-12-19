@@ -7,6 +7,7 @@ var Handlers = map[string]func([]Value) Value{
 	"PING":    ping,
 	"GET":     get,
 	"SET":     set,
+	"DEL":     del,
 	"HGET":    hget,
 	"HSET":    hset,
 	"HGETALL": hgetall,
@@ -58,6 +59,25 @@ func get(args []Value) Value {
 	}
 
 	return Value{Typ: "bulk", Bulk: value}
+}
+
+func del(args []Value) Value {
+	if len(args) == 0 {
+		return Value{Typ: "error", Str: "ERR wrong number of arguments for 'del' command"}
+	}
+
+	keysDeleted := 0
+
+	SETsMu.Lock()
+	for _, k := range args {
+		if _, ok := SETs[k.Bulk]; ok {
+			keysDeleted++
+		}
+		delete(SETs, k.Bulk)
+	}
+	SETsMu.Unlock()
+
+	return Value{Typ: "integer", Num: keysDeleted}
 }
 
 var HSETs = map[string]map[string]string{}
