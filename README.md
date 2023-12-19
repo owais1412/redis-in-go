@@ -1,7 +1,8 @@
 # redis-in-go
 
 # Run
-`$ make run`
+1. Run `$ make run` in a terminal
+2. Run `$ redis-cli` in another terminal and start running the commands
 
 # Commands supported
 ## PING
