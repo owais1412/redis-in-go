@@ -8,6 +8,7 @@ var Handlers = map[string]func([]Value) Value{
 	"GET":     get,
 	"SET":     set,
 	"DEL":     del,
+	"EXISTS":  exists,
 	"HGET":    hget,
 	"HSET":    hset,
 	"HGETALL": hgetall,
@@ -78,6 +79,24 @@ func del(args []Value) Value {
 	SETsMu.Unlock()
 
 	return Value{Typ: "integer", Num: keysDeleted}
+}
+
+func exists(args []Value) Value {
+	if len(args) == 0 {
+		return Value{Typ: "error", Str: "ERR wrong number of arguments for 'exists' command"}
+	}
+
+	keysFound := 0
+
+	SETsMu.RLock()
+	for _, k := range args {
+		if _, ok := SETs[k.Bulk]; ok {
+			keysFound++
+		}
+	}
+	SETsMu.RUnlock()
+
+	return Value{Typ: "integer", Num: keysFound}
 }
 
 var HSETs = map[string]map[string]string{}

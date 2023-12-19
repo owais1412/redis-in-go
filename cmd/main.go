@@ -6,6 +6,7 @@ import (
 	"os"
 	"redis/internal/aof"
 	"redis/internal/resp"
+	"slices"
 	"strings"
 )
 
@@ -70,7 +71,7 @@ func main() {
 		args := value.Array[1:]
 
 		// persit to the disk
-		if command == "SET" || command == "HSET" {
+		if slices.Index([]string{"SET", "HSET", "DEL"}, command) != -1 {
 			aof.Write(value)
 		}
 
